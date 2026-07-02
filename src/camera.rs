@@ -1,0 +1,137 @@
+use rand::prelude::*;
+
+use crate::{
+    hittable::Hittable,
+    interval::Interval,
+    ray::Ray,
+    vector::{Color, Point, Vector3},
+};
+
+pub struct Camera {
+    pub aspect_ratio: f64,
+    pub image_width: i32,
+    pub samples_per_pixel: u32,
+    image_height: i32,
+    pixel_samples_scale: f64,
+    center: Point,
+    pixelzero_loc: Point,
+    pixel_delta_u: Vector3,
+    pixel_delta_v: Vector3,
+}
+
+impl Camera {
+    pub fn render(&mut self, world: &impl Hittable) {
+        self.init();
+
+        print!("P3\n{} {}\n255\n", self.image_width, self.image_height);
+
+        for j in 0..self.image_height {
+            eprintln!("\rScanlines remaining: {}", (self.image_height - j));
+
+            for i in 0..self.image_width {
+                let mut pixel_color = Color::new(0.0, 0.0, 0.0);
+
+                for _ in 0..self.samples_per_pixel {
+                    let r = self.get_ray(i, j);
+                    pixel_color += ray_color(&r, world);
+                }
+                println!("{}", write_color(self.pixel_samples_scale * pixel_color));
+            }
+        }
+
+        eprintln!("\rDone!              \n");
+    }
+
+    fn init(&mut self) {
+        self.image_height = (self.image_width as f64 / self.aspect_ratio) as i32;
+        self.image_height = if self.image_height < 1 {
+            1
+        } else {
+            self.image_height
+        };
+
+        self.pixel_samples_scale = 1.0 / self.samples_per_pixel as f64;
+
+        self.center = Point::new(0.0, 0.0, 0.0);
+
+        let focal_length = 1.0;
+        let viewport_height = 2.0;
+        let viewport_width = viewport_height * (self.image_width as f64 / self.image_height as f64);
+
+        let viewport_u = Vector3::new(viewport_width, 0.0, 0.0);
+        let viewport_v = Vector3::new(0.0, -viewport_height, 0.0);
+
+        self.pixel_delta_u = viewport_u / self.image_width as f64;
+        self.pixel_delta_v = viewport_v / self.image_height as f64;
+
+        let viewport_upper_left = self.center
+            - Vector3::new(0.0, 0.0, focal_length)
+            - viewport_u / 2.0
+            - viewport_v / 2.0;
+
+        self.pixelzero_loc = viewport_upper_left + 0.5 * (self.pixel_delta_u + self.pixel_delta_v);
+    }
+
+    /// Construct a camera ray originating from the origin and directed at randomly sampled
+    /// point around the pixel at location i, j
+    fn get_ray(&self, i: i32, j: i32) -> Ray {
+        let offset = sample_square();
+        let pixel_sample = self.pixelzero_loc
+            + ((i as f64 + offset.x()) * self.pixel_delta_u)
+            + ((j as f64 + offset.y()) * self.pixel_delta_v);
+
+        let ray_origin = self.center;
+        let ray_direction = pixel_sample - ray_origin;
+
+        Ray::new(&ray_origin, &ray_direction)
+    }
+}
+
+/// Returns the vector to a random point in the [-.5,-.5]-[+.5,+.5] unit square
+fn sample_square() -> Vector3 {
+    let mut rng = rand::rng();
+
+    Vector3::new(
+        rng.random_range(0.0..1.0) - 0.5,
+        rng.random_range(0.0..1.0) - 0.5,
+        0.0,
+    )
+}
+
+fn ray_color(r: &Ray, world: &impl Hittable) -> Color {
+    if let Some(rec) = world.hit(r, Interval::new(0.0, f64::INFINITY)) {
+        return 0.5 * (rec.normal + Color::new(1.0, 1.0, 1.0));
+    }
+
+    let unit_direction = r.direction().normalize();
+    let a = 0.5 * (unit_direction.y() + 1.0);
+
+    (1.0 - a) * Color::new(1.0, 1.0, 1.0) + a * Color::new(0.5, 0.7, 1.0)
+}
+
+fn write_color(pixel_color: Color) -> String {
+    let intensity = Interval::new(0.000, 0.999);
+
+    format!(
+        "{} {} {}",
+        (256.00 * intensity.clamp(pixel_color.x())) as u32,
+        (256.00 * intensity.clamp(pixel_color.y())) as u32,
+        (256.00 * intensity.clamp(pixel_color.z())) as u32,
+    )
+}
+
+impl Default for Camera {
+    fn default() -> Self {
+        Self {
+            aspect_ratio: 1.0,
+            image_width: 100,
+            samples_per_pixel: 10,
+            image_height: 100,
+            pixel_samples_scale: 1.0,
+            center: Point::new(0.0, 0.0, 0.0),
+            pixelzero_loc: Point::new(0.0, 0.0, 0.0),
+            pixel_delta_u: Vector3::new(0.0, 0.0, 0.0),
+            pixel_delta_v: Vector3::new(0.0, 0.0, 0.0),
+        }
+    }
+}
