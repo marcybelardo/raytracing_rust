@@ -50,11 +50,11 @@ impl Vector3 {
 
     pub fn near_zero(&self) -> bool {
         let s = 1e-8;
-        (f64::abs(self.x) < s) && (f64::abs(self.y) < s) && (f64::abs(self.z) < s)
+        (self.x.abs() < s) && (self.y.abs() < s) && (self.z.abs() < s)
     }
 
-    fn length(&self) -> f64 {
-        f64::sqrt(self.length_squared())
+    pub fn length(&self) -> f64 {
+        self.length_squared().sqrt()
     }
 }
 
