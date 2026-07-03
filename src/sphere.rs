@@ -2,17 +2,18 @@ use std::rc::Rc;
 
 use crate::hittable::{HitRecord, Hittable};
 use crate::interval::Interval;
+use crate::material::Material;
 use crate::ray::Ray;
 use crate::vector::Point;
 
 pub struct Sphere {
     center: Point,
     radius: f64,
-    mat: Rc<dyn Hittable>,
+    mat: Rc<dyn Material>,
 }
 
 impl Sphere {
-    pub fn new(center: Point, radius: f64, mat: Rc<dyn Hittable>) -> Self {
+    pub fn new(center: Point, radius: f64, mat: Rc<dyn Material>) -> Self {
         Self {
             center,
             radius: radius.max(0.0),

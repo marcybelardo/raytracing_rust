@@ -4,7 +4,7 @@ use crate::{
     hittable::Hittable,
     interval::Interval,
     ray::Ray,
-    vector::{Color, Point, Vector3, random_unit_vec},
+    vector::{Color, Point, Vector3},
 };
 
 pub struct Camera {
@@ -113,8 +113,11 @@ fn ray_color(r: &Ray, depth: u32, world: &impl Hittable) -> Color {
     }
 
     if let Some(rec) = world.hit(r, Interval::new(0.001, f64::INFINITY)) {
-        let direction = rec.normal + random_unit_vec();
-        return 0.5 * ray_color(&Ray::new(&rec.p, &direction), depth - 1, world);
+        if let Some((attenuation, scattered)) = rec.mat.scatter(r, &rec) {
+            return attenuation * ray_color(&scattered, depth - 1, world);
+        } else {
+            return Color::new(0.0, 0.0, 0.0);
+        }
     }
 
     let unit_direction = r.direction().normalize();

@@ -1,15 +1,16 @@
 use std::rc::Rc;
 
 use crate::interval::Interval;
+use crate::material::Material;
 use crate::ray::Ray;
 use crate::vector::{Point, Vector3};
 
 pub struct HitRecord {
     pub p: Point,
     pub normal: Vector3,
-    pub mat: Rc<dyn Hittable>,
+    pub mat: Rc<dyn Material>,
     pub t: f64,
-    front_face: bool,
+    pub front_face: bool,
 }
 
 pub trait Hittable {
@@ -17,7 +18,7 @@ pub trait Hittable {
 }
 
 impl HitRecord {
-    pub fn new(p: Point, t: f64, mat: Rc<dyn Hittable>, front_face: bool) -> Self {
+    pub fn new(p: Point, t: f64, mat: Rc<dyn Material>, front_face: bool) -> Self {
         Self {
             p,
             normal: Vector3::new(0.0, 0.0, 0.0),

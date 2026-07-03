@@ -1,8 +1,8 @@
-use crate::{hittable::HitRecord, ray::Ray, vector::{Color, random_unit_vec}};
+use crate::{hittable::HitRecord, ray::Ray, vector::{Color, random_unit_vec, reflect, refract}};
 
 pub trait Material {
     /// Returns an Option of an attenuation color and a scattered ray
-    fn scatter(&self, _r_in: &Ray, rec: &HitRecord) -> Option<(Color, Ray)>;
+    fn scatter(&self, r_in: &Ray, rec: &HitRecord) -> Option<(Color, Ray)>;
 }
 
 pub struct Lambertian {
@@ -26,6 +26,58 @@ impl Material for Lambertian {
 
         let scattered = Ray::new(&rec.p, &scatter_direction);
         let attenuation = self.albedo;
+
+        Some((attenuation, scattered))
+    }
+}
+
+pub struct Metal {
+    albedo: Color,
+    fuzz: f64,
+}
+
+impl Metal {
+    pub fn new(albedo: Color, fuzz: f64) -> Self {
+        Self { albedo, fuzz }
+    }
+}
+
+impl Material for Metal {
+    fn scatter(&self, r_in: &Ray, rec: &HitRecord) -> Option<(Color, Ray)> {
+        let reflected = reflect(&r_in.direction(), &rec.normal)
+            .normalize() + (self.fuzz * random_unit_vec());
+
+        let scattered = Ray::new(&rec.p, &reflected);
+        let attenuation = self.albedo;
+
+        (scattered.direction().dot(&rec.normal) > 0.0)
+            .then_some((attenuation, scattered))
+    }
+}
+
+pub struct Dielectric {
+    refraction_index: f64,
+}
+
+impl Dielectric {
+    pub fn new(refraction_index: f64) -> Self {
+        Self { refraction_index }
+    }
+}
+
+impl Material for Dielectric {
+    fn scatter(&self, r_in: &Ray, rec: &HitRecord) -> Option<(Color, Ray)> {
+        let attenuation = Color::new(1.0, 1.0, 1.0);
+        let ri = if rec.front_face {
+            1.0 / self.refraction_index
+        } else {
+            self.refraction_index
+        };
+
+        let unit_direction = r_in.direction().normalize();
+        let refracted = refract(&unit_direction, &rec.normal, ri);
+
+        let scattered = Ray::new(&rec.p, &refracted);
 
         Some((attenuation, scattered))
     }
