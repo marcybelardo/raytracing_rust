@@ -4,13 +4,14 @@ use crate::{
     hittable::Hittable,
     interval::Interval,
     ray::Ray,
-    vector::{Color, Point, Vector3},
+    vector::{Color, Point, Vector3, random_unit_vec},
 };
 
 pub struct Camera {
     pub aspect_ratio: f64,
     pub image_width: i32,
     pub samples_per_pixel: u32,
+    pub max_depth: u32,
     image_height: i32,
     pixel_samples_scale: f64,
     center: Point,
@@ -33,7 +34,7 @@ impl Camera {
 
                 for _ in 0..self.samples_per_pixel {
                     let r = self.get_ray(i, j);
-                    pixel_color += ray_color(&r, world);
+                    pixel_color += ray_color(&r, self.max_depth, world);
                 }
                 println!("{}", write_color(self.pixel_samples_scale * pixel_color));
             }
@@ -87,6 +88,14 @@ impl Camera {
     }
 }
 
+fn linear_to_gamma(linear_component: f64) -> f64 {
+    if linear_component > 0.0 {
+        f64::sqrt(linear_component)
+    } else {
+        0.0
+    }
+}
+
 /// Returns the vector to a random point in the [-.5,-.5]-[+.5,+.5] unit square
 fn sample_square() -> Vector3 {
     let mut rng = rand::rng();
@@ -98,9 +107,14 @@ fn sample_square() -> Vector3 {
     )
 }
 
-fn ray_color(r: &Ray, world: &impl Hittable) -> Color {
-    if let Some(rec) = world.hit(r, Interval::new(0.0, f64::INFINITY)) {
-        return 0.5 * (rec.normal + Color::new(1.0, 1.0, 1.0));
+fn ray_color(r: &Ray, depth: u32, world: &impl Hittable) -> Color {
+    if depth <= 0 {
+        return Color::new(0.0, 0.0, 0.0);
+    }
+
+    if let Some(rec) = world.hit(r, Interval::new(0.001, f64::INFINITY)) {
+        let direction = rec.normal + random_unit_vec();
+        return 0.5 * ray_color(&Ray::new(&rec.p, &direction), depth - 1, world);
     }
 
     let unit_direction = r.direction().normalize();
@@ -110,13 +124,16 @@ fn ray_color(r: &Ray, world: &impl Hittable) -> Color {
 }
 
 fn write_color(pixel_color: Color) -> String {
-    let intensity = Interval::new(0.000, 0.999);
+    let r = linear_to_gamma(pixel_color.x());
+    let g = linear_to_gamma(pixel_color.y());
+    let b = linear_to_gamma(pixel_color.z());
 
+    let intensity = Interval::new(0.000, 0.999);
     format!(
         "{} {} {}",
-        (256.00 * intensity.clamp(pixel_color.x())) as u32,
-        (256.00 * intensity.clamp(pixel_color.y())) as u32,
-        (256.00 * intensity.clamp(pixel_color.z())) as u32,
+        (256.00 * intensity.clamp(r)) as u32,
+        (256.00 * intensity.clamp(g)) as u32,
+        (256.00 * intensity.clamp(b)) as u32,
     )
 }
 
@@ -126,6 +143,7 @@ impl Default for Camera {
             aspect_ratio: 1.0,
             image_width: 100,
             samples_per_pixel: 10,
+            max_depth: 10,
             image_height: 100,
             pixel_samples_scale: 1.0,
             center: Point::new(0.0, 0.0, 0.0),

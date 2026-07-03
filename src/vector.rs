@@ -1,3 +1,4 @@
+use rand::prelude::*;
 use std::{fmt::Display, ops};
 
 pub type Point = Vector3;
@@ -47,8 +48,46 @@ impl Vector3 {
         self.x * self.x + self.y * self.y + self.z * self.z
     }
 
+    pub fn near_zero(&self) -> bool {
+        let s = 1e-8;
+        (f64::abs(self.x) < s) && (f64::abs(self.y) < s) && (f64::abs(self.z) < s)
+    }
+
     fn length(&self) -> f64 {
         f64::sqrt(self.length_squared())
+    }
+}
+
+pub fn random_vec() -> Vector3 {
+    let mut rng = rand::rng();
+    Vector3::new(rng.random(), rng.random(), rng.random())
+}
+
+pub fn random_vec_range(min: f64, max: f64) -> Vector3 {
+    let mut rng = rand::rng();
+    Vector3::new(
+        rng.random_range(min..max),
+        rng.random_range(min..max),
+        rng.random_range(min..max),
+    )
+}
+
+pub fn random_unit_vec() -> Vector3 {
+    loop {
+        let p = random_vec_range(-1.0, 1.0);
+        let lensq = p.length_squared();
+        if 1e-160 < lensq && lensq <= 1.0 {
+            break p / f64::sqrt(lensq);
+        }
+    }
+}
+
+pub fn random_on_hemisphere(normal: &Vector3) -> Vector3 {
+    let on_unit_sphere = random_unit_vec();
+    if on_unit_sphere.dot(normal) > 0.0 {
+        on_unit_sphere
+    } else {
+        -on_unit_sphere
     }
 }
 
