@@ -91,6 +91,20 @@ pub fn random_on_hemisphere(normal: &Vector3) -> Vector3 {
     }
 }
 
+pub fn random_in_unit_disk() -> Vector3 {
+    let mut rng = rand::rng();
+    loop {
+        let p = Vector3::new(
+            rng.random_range(-1.0..1.0),
+            rng.random_range(-1.0..1.0),
+            0.0,
+        );
+        if p.length_squared() < 1.0 {
+            break p;
+        }
+    }
+}
+
 pub fn reflect(v: &Vector3, n: &Vector3) -> Vector3 {
     *v - 2.0 * v.dot(n) * *n
 }
