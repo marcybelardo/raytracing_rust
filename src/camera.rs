@@ -1,4 +1,6 @@
+use indicatif::ParallelProgressIterator;
 use rand::prelude::*;
+use rayon::prelude::*;
 
 use crate::{
     degrees_to_radians,
@@ -44,21 +46,27 @@ impl Camera {
 
         print!("P3\n{} {}\n255\n", self.image_width, self.image_height);
 
-        for j in 0..self.image_height {
-            eprintln!("\rScanlines remaining: {}", (self.image_height - j));
+        let pixels: Vec<Color> = (0..self.image_width * self.image_height)
+            .into_par_iter()
+            .progress_count(self.image_width as u64 * self.image_height as u64)
+            .map(|idx| {
+                let i = idx % self.image_width;
+                let j = idx / self.image_width;
 
-            for i in 0..self.image_width {
-                let mut pixel_color = Color::new(0.0, 0.0, 0.0);
+                let mut color = Color::new(0.0, 0.0, 0.0);
 
                 for _ in 0..self.samples_per_pixel {
                     let r = self.get_ray(i, j);
-                    pixel_color += ray_color(&r, self.max_depth, world);
+                    color += ray_color(&r, self.max_depth, world);
                 }
-                println!("{}", write_color(self.pixel_samples_scale * pixel_color));
-            }
-        }
 
-        eprintln!("\rDone!              \n");
+                color
+            })
+            .collect();
+
+        for color in pixels {
+            println!("{}", write_color(self.pixel_samples_scale * color));
+        }
     }
 
     fn init(&mut self) {

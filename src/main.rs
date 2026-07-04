@@ -1,17 +1,18 @@
+use std::sync::Arc;
+
 use rand::RngExt;
 use raytracing_rust::camera::Camera;
 use raytracing_rust::hittable_list::HittableList;
 use raytracing_rust::material::{Dielectric, Lambertian, Metal};
 use raytracing_rust::sphere::Sphere;
 use raytracing_rust::vector::{Color, Point, Vector3, random_vec, random_vec_range};
-use std::rc::Rc;
 
 fn main() {
     let mut world = HittableList::new();
     let mut rng = rand::rng();
 
-    let ground_material = Rc::new(Lambertian::new(Color::new(0.5, 0.5, 0.5)));
-    world.add(Rc::new(Sphere::new(
+    let ground_material = Arc::new(Lambertian::new(Color::new(0.5, 0.5, 0.5)));
+    world.add(Arc::new(Sphere::new(
         Point::new(0.0, -1000.0, 0.0),
         1000.0,
         ground_material,
@@ -30,46 +31,46 @@ fn main() {
                 if choose_mat < 0.8 {
                     // diffuse
                     let albedo = random_vec() * random_vec();
-                    world.add(Rc::new(Sphere::new(
+                    world.add(Arc::new(Sphere::new(
                         center,
                         0.2,
-                        Rc::new(Lambertian::new(albedo)),
+                        Arc::new(Lambertian::new(albedo)),
                     )));
                 } else if choose_mat < 0.95 {
                     // metal
                     let albedo = random_vec_range(0.5, 1.0);
                     let fuzz = rng.random_range(0.0..0.5);
-                    world.add(Rc::new(Sphere::new(
+                    world.add(Arc::new(Sphere::new(
                         center,
                         0.2,
-                        Rc::new(Metal::new(albedo, fuzz)),
+                        Arc::new(Metal::new(albedo, fuzz)),
                     )));
                 } else {
                     // glass
-                    world.add(Rc::new(Sphere::new(
+                    world.add(Arc::new(Sphere::new(
                         center,
                         0.2,
-                        Rc::new(Dielectric::new(1.5)),
+                        Arc::new(Dielectric::new(1.5)),
                     )));
                 }
             }
         }
     }
 
-    world.add(Rc::new(Sphere::new(
+    world.add(Arc::new(Sphere::new(
         Point::new(0.0, 1.0, 0.0),
         1.0,
-        Rc::new(Dielectric::new(1.5)),
+        Arc::new(Dielectric::new(1.5)),
     )));
-    world.add(Rc::new(Sphere::new(
+    world.add(Arc::new(Sphere::new(
         Point::new(-4.0, 1.0, 0.0),
         1.0,
-        Rc::new(Lambertian::new(Color::new(0.4, 0.2, 0.1))),
+        Arc::new(Lambertian::new(Color::new(0.4, 0.2, 0.1))),
     )));
-    world.add(Rc::new(Sphere::new(
+    world.add(Arc::new(Sphere::new(
         Point::new(4.0, 1.0, 0.0),
         1.0,
-        Rc::new(Metal::new(Color::new(0.7, 0.6, 0.5), 0.0)),
+        Arc::new(Metal::new(Color::new(0.7, 0.6, 0.5), 0.0)),
     )));
 
     let mut cam = Camera::default();

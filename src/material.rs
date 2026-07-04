@@ -6,7 +6,7 @@ use crate::{
 
 use rand::prelude::*;
 
-pub trait Material {
+pub trait Material: Send + Sync {
     /// Returns an Option of an attenuation color and a scattered ray
     fn scatter(&self, r_in: &Ray, rec: &HitRecord) -> Option<(Color, Ray)>;
 }

@@ -2,3 +2,7 @@ target
 debug
 
 **/*.rs.bk
+
+image.*
+
+.DS_Store

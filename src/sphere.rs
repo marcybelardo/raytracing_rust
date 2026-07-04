@@ -1,4 +1,4 @@
-use std::rc::Rc;
+use std::sync::Arc;
 
 use crate::hittable::{HitRecord, Hittable};
 use crate::interval::Interval;
@@ -9,11 +9,11 @@ use crate::vector::Point;
 pub struct Sphere {
     center: Point,
     radius: f64,
-    mat: Rc<dyn Material>,
+    mat: Arc<dyn Material + Send + Sync>,
 }
 
 impl Sphere {
-    pub fn new(center: Point, radius: f64, mat: Rc<dyn Material>) -> Self {
+    pub fn new(center: Point, radius: f64, mat: Arc<dyn Material + Send + Sync>) -> Self {
         Self {
             center,
             radius: radius.max(0.0),
@@ -53,7 +53,7 @@ impl Hittable for Sphere {
             }
         }
 
-        let mut rec = HitRecord::new(r.at(root), root, Rc::clone(&self.mat), false);
+        let mut rec = HitRecord::new(r.at(root), root, Arc::clone(&self.mat), false);
         let outward_normal = (rec.p - self.center) / self.radius;
         rec.set_face_normal(r, outward_normal);
 
